@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Domino etos palo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--green:#2d6a4f;--board:#1b4332;--gold:#e8c96d;--red:#e74c3c;--ivory:#f5edd8;--dot:#2a1f10;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;background:var(--board);}
+
+/* LOBBY */
+#lobby{position:fixed;inset:0;background:linear-gradient(160deg,#1b4332,#0d2818);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;}
+#lobby h1{color:var(--gold);font-size:2rem;margin-bottom:4px;}
+.sub{color:#7ec8a0;font-size:13px;margin-bottom:28px;}
+.lcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:20px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;}
+.lbl{font-size:11px;color:#7ec8a0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.inp{width:100%;padding:11px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#eee;font-size:15px;}
+.inp::placeholder{color:#555;}
+.inp:focus{outline:none;border-color:var(--gold);}
+.row{display:flex;gap:8px;}
+.btn{padding:10px 18px;border-radius:8px;border:none;font-size:14px;cursor:pointer;font-weight:600;}
+.btn-gold{background:var(--gold);color:#1a1000;width:100%;padding:14px;}
+.btn-gray{background:rgba(255,255,255,.1);color:#eee;border:1px solid rgba(255,255,255,.15);}
+.btn-red{background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.3);}
+#l-msg{font-size:13px;color:#7ec8a0;text-align:center;min-height:18px;}
+
+/* WAIT */
+#wait{position:fixed;inset:0;background:linear-gradient(160deg,#1b4332,#0d2818);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;}
+#wait h2{color:var(--gold);margin-bottom:8px;}
+.room-code{font-size:2.4rem;font-weight:700;letter-spacing:.2em;color:var(--gold);background:rgba(0,0,0,.3);padding:12px 24px;border-radius:10px;border:1px solid rgba(232,201,109,.3);margin:12px 0;}
+
+/* GAME */
+#game{position:fixed;inset:0;display:none;flex-direction:column;background:var(--board);}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;height:52px;}
+.pname{font-size:12px;font-weight:700;color:#eee;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pscore{font-size:22px;font-weight:900;line-height:1;}
+.pcard{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,.3);border-radius:8px;padding:4px 10px;min-width:70px;}
+.pcard.you .pscore{color:var(--gold);}
+.pcard.opp .pscore{color:#e87060;}
+.pcard.leading{border:1px solid var(--gold);}
+#turn-badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-align:center;}
+.turn-you{background:rgba(46,204,113,.2);color:#2ecc71;border:1px solid rgba(46,204,113,.3);}
+.turn-opp{background:rgba(90,80,64,.3);color:#aaa;}
+#board-area.my-turn{filter:brightness(1.22);}
+#board-area{flex:1;overflow:auto;position:relative;background:radial-gradient(ellipse at center,#2d6a4f 0%,#1b4332 100%);transition:filter .5s;}
+
+/* Opp hand */
+#opp-area{display:flex;align-items:center;padding:5px 8px;gap:3px;height:48px;flex-shrink:0;background:rgba(0,0,0,.2);}
+.opp-back{width:24px;height:42px;background:linear-gradient(145deg,#2a5c1a,#1a3a0a);border:1.5px solid #4a8a2a;border-radius:5px;display:inline-block;margin:2px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1);}
+
+/* Board */
+#board-area{flex:1;overflow:auto;position:relative;background:radial-gradient(ellipse at center,#2d6a4f 0%,#1b4332 100%);}
+#board-inner{position:relative;}
+.bdom{position:absolute;display:flex;align-items:center;justify-content:space-between;background:var(--ivory);border:1.5px solid #8a7a60;border-radius:5px;padding:3px;transition:left .25s, top .25s;}
+.bhf{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:1px;}
+.bdot{border-radius:50%;background:var(--dot);justify-self:center;align-self:center;}
+.bmt{background:transparent;}
+.bdiv-v{width:90%;height:1.5px;background:#b8a888;flex-shrink:0;align-self:center;}
+.bdiv-h{height:90%;width:1.5px;background:#b8a888;flex-shrink:0;align-self:center;}
+
+/* Drop zones */
+.drop-zone{position:absolute;border:2px dashed rgba(232,201,109,.7);border-radius:8px;background:rgba(232,201,109,.1);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gold);font-weight:700;z-index:10;transition:background .15s;}
+.drop-zone.hot{background:rgba(46,204,113,.2);border-color:#2ecc71;color:#2ecc71;}
+
+/* Pozo */
+#pozo-bar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(0,0,0,.3);flex-shrink:0;height:44px;border-top:1px solid rgba(255,255,255,.06);}
+#pozo-label{font-size:11px;color:#7ec8a0;flex-shrink:0;white-space:nowrap;}
+#pozo-pile{display:flex;flex:1;overflow:hidden;align-items:center;}
+#btn-draw{padding:5px 12px;border-radius:6px;border:1px solid rgba(232,201,109,.4);background:rgba(232,201,109,.1);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
+#btn-draw:disabled{opacity:.3;cursor:not-allowed;}
+
+/* Hand — 2 rows if needed */
+#hand-wrap{background:rgba(0,0,0,.5);border-top:2px solid rgba(255,255,255,.1);flex-shrink:0;overflow:hidden;}
+#hand-area{display:flex;flex-wrap:wrap;align-content:flex-start;padding:6px 6px 4px;gap:5px;overflow-y:auto;max-height:176px;}
+#hand-area::-webkit-scrollbar{display:none;}
+
+/* Hand domino */
+.hdom{display:inline-flex;flex-direction:column;align-items:center;justify-content:space-between;background:var(--ivory);border:2px solid #8a7a60;border-radius:6px;padding:3px;cursor:pointer;flex-shrink:0;transition:transform .15s,box-shadow .15s;touch-action:none;}
+.hdom.sel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,201,109,.5);transform:translateY(-6px);}
+.hdom.playable{border-color:#2ecc71;}
+.hdom.dragging{opacity:.4;}
+.hhf{display:grid;width:100%;flex:1;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:1px;padding:1px;}
+.hdot{border-radius:50%;background:var(--dot);justify-self:center;align-self:center;}
+.hmt{background:transparent;}
+.hsv{width:88%;height:1.5px;background:#b8a888;flex-shrink:0;align-self:center;}
+
+/* Drag ghost */
+#drag-ghost{position:fixed;pointer-events:none;z-index:9999;display:none;flex-direction:column;align-items:stretch;justify-content:space-between;background:linear-gradient(145deg,#faf6ee,#f0e8d4);border:2px solid var(--gold);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.6);opacity:.92;}
+
+/* Actions */
+#actions{display:flex;gap:8px;padding:5px 10px;background:rgba(0,0,0,.4);flex-shrink:0;align-items:center;border-top:1px solid rgba(255,255,255,.06);}
+
+
+#btn-stats{padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#aaa;font-size:12px;cursor:pointer;}
+#btn-leave{padding:7px 12px;border-radius:7px;border:1px solid rgba(231,76,60,.3);background:rgba(231,76,60,.1);color:#e74c3c;font-size:12px;cursor:pointer;}
+#game-msg{flex:1;font-size:11px;color:#7ec8a0;text-align:center;line-height:1.3;}
+
+/* End — overlay on top of game, not full black */
+#endscreen{position:fixed;inset:0;background:rgba(0,0,0,.0);display:none;flex-direction:column;z-index:200;pointer-events:none;}
+#endscreen.active{pointer-events:all;}
+/* Top banner */
+#e-banner{background:rgba(15,35,20,.97);border-bottom:2px solid rgba(232,201,109,.4);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+#e-ico{font-size:28px;flex-shrink:0;}
+#e-title{color:var(--gold);font-size:1rem;font-weight:700;line-height:1.2;}
+#e-sub{font-size:11px;color:#aaa;margin-top:2px;}
+#e-gover{font-size:12px;color:#2ecc71;font-weight:600;margin-top:2px;}
+#e-piedra{margin-top:3px;min-height:0;}
+.piedra-badge{background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.4);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+/* Scores bar */
+#e-scores-bar{display:flex;gap:0;flex-shrink:0;}
+.e-score-box{flex:1;padding:8px;text-align:center;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(255,255,255,.08);}
+.e-score-box:first-child{border-right:1px solid rgba(255,255,255,.08);}
+.e-score-name{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;}
+.e-score-val{font-size:1.6rem;font-weight:900;color:var(--gold);line-height:1.1;}
+.e-score-pts{font-size:10px;color:#7ec8a0;}
+/* Hands area — visible through semi-transparent */
+#e-hands{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:10px;background:rgba(0,0,0,.5);}
+.e-hand-row{display:flex;flex-direction:column;gap:4px;}
+.e-hand-label{font-size:10px;color:#7ec8a0;text-transform:uppercase;letter-spacing:.05em;}
+.e-hand-pieces{display:flex;flex-wrap:wrap;gap:4px;}
+.e-hand-sum{font-size:11px;color:var(--gold);font-weight:700;margin-left:4px;}
+/* Bottom buttons */
+#e-btns-bar{display:flex;gap:8px;padding:10px 14px;background:rgba(15,35,20,.97);border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;}
+#e-wait{font-size:11px;color:#7ec8a0;text-align:center;padding:4px 0;}
+
+/* Stats */
+#statsscreen{position:fixed;inset:0;background:rgba(0,0,0,.93);display:none;flex-direction:column;padding:20px;z-index:300;overflow-y:auto;}
+.stat-card{background:#1b4332;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:12px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin-top:10px;}
+.stat-big{font-size:1.4rem;font-weight:700;}
+
+/* Toast */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1000;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;z-index:9998;display:none;max-width:90vw;text-align:center;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* Chat */
+#chat-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:400;padding-bottom:12px;}
+.chat-inner{background:#1b4332;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:14px;width:90%;max-width:340px;}
+#chat-msgs{max-height:140px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;}
+.cmsg{padding:6px 10px;border-radius:10px;font-size:13px;max-width:85%;}
+.cmsg.me{background:rgba(232,201,109,.2);color:var(--gold);align-self:flex-end;text-align:right;}
+.cmsg.them{background:rgba(255,255,255,.1);color:#eee;align-self:flex-start;}
+.cmsg .cwho{font-size:10px;opacity:.6;margin-bottom:2px;}
+#chat-row{display:flex;gap:8px;}
+#chat-inp{flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);color:#eee;font-size:14px;}
+#chat-inp::placeholder{color:#555;}
+#chat-send{padding:8px 14px;border-radius:8px;background:var(--gold);color:#1a1000;border:none;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="drag-ghost"></div>
+<div id="toast"></div>
+<!-- CHAT MODAL -->
+<div id="chat-modal" onclick="if(event.target===this)closeChat()">
+  <div class="chat-inner">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="color:var(--gold);font-weight:600;font-size:14px;">💬 Chat</span>
+      <button onclick="closeChat()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="chat-msgs"></div>
+    <div id="chat-row">
+      <input id="chat-inp" placeholder="Escribí un mensaje..." maxlength="80" onkeydown="if(event.key==='Enter')sendChat()">
+      <button id="chat-send" onclick="sendChat()">→</button>
+    </div>
+    <div id="chat-warn" style="font-size:11px;color:#e87060;margin-top:4px;min-height:14px;"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <div style="font-size:3rem;margin-bottom:4px;">🁣</div>
+  <h1>Domino etos palo</h1>
+  <p class="sub">Arrastrá fichas · Regla de piedra · Online</p>
+  <div class="lcard">
+    <div><div class="lbl">Tu nombre</div><input class="inp" id="i-name" placeholder="Ej: Carlos" maxlength="20"></div>
+    <div>
+      <div class="lbl">Código de sala</div>
+      <div class="row"><input class="inp" id="i-room" placeholder="Ej: MESA5" style="text-transform:uppercase;flex:1;" maxlength="8"><button class="btn btn-gray" onclick="genRoom()">🎲</button></div>
+    </div>
+    <button class="btn btn-gold" onclick="joinGame()">Entrar a la sala →</button>
+    <button class="btn btn-gray" onclick="startSolo()" style="font-size:13px;background:rgba(46,204,113,.15);border-color:rgba(46,204,113,.3);color:#2ecc71;">🎮 Modo solo (sin rival)</button>
+    <p id="l-msg"></p>
+    <button class="btn btn-gray" onclick="showStats(false)" style="font-size:13px;">📊 Estadísticas</button>
+  </div>
+</div>
+
+<!-- WAIT -->
+<div id="wait">
+  <div style="font-size:2rem;margin-bottom:8px;">⏳</div>
+  <h2>Esperando rival...</h2>
+  <p style="color:#7ec8a0;font-size:13px;margin-bottom:4px;">Compartí este código:</p>
+  <div class="room-code" id="d-room"></div>
+  <div class="row" style="gap:10px;margin-top:8px;">
+    <button class="btn btn-gray" onclick="copyRoom()">📋 Copiar</button>
+    <button class="btn btn-red" onclick="leaveGame()">Cancelar</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;color:#7ec8a0;font-size:13px;margin-top:16px;"><div class="spin"></div> Esperando jugador 2...</div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div id="topbar">
+    <div class="pcard you" id="pc-you"><div class="pname" id="pn-you"></div><div class="pscore" id="ps-you">0</div></div>
+    <div style="text-align:center;"><div id="turn-badge" class="turn-opp">—</div><div style="font-size:10px;color:#555;margin-top:2px;">Meta: 101</div></div>
+    <div class="pcard opp" id="pc-opp"><div class="pname" id="pn-opp"></div><div class="pscore" id="ps-opp">0</div></div>
+  </div>
+  <div id="opp-area"><span style="font-size:10px;color:#7ec8a0;flex-shrink:0;" id="opp-label">Rival</span><div id="opp-hand" style="display:flex;gap:3px;align-items:center;margin-left:6px;"></div></div>
+  <div id="board-area"><div id="board-inner"><div id="board-pieces"></div><div id="drop-left" class="drop-zone" style="display:none;"></div><div id="drop-right" class="drop-zone" style="display:none;"></div></div></div>
+  <div id="pozo-bar"><span id="pozo-label">Pozo: <b id="g-yard">0</b></span><div id="pozo-pile"></div><button id="btn-draw" onclick="drawFromPozo()" disabled>🎴 Robar</button></div>
+  <div id="hand-wrap"><div id="hand-area"></div></div>
+  <div id="actions"><span id="game-msg"></span><button id="btn-solo-switch" onclick="soloSwitchHand()" style="display:none;padding:7px 12px;border-radius:7px;border:1px solid rgba(46,204,113,.4);background:rgba(46,204,113,.15);color:#2ecc71;font-size:12px;font-weight:600;cursor:pointer;">🔄 Cambiar mano</button><button id="btn-chat" onclick="openChat()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#eee;font-size:16px;cursor:pointer;">💬</button><button id="btn-stats" onclick="showStats(true)">📊</button><button id="btn-leave" onclick="leaveGame()">Salir</button></div>
+  <!-- Chat bubble -->
+  <div id="chat-bubble" style="display:none;position:absolute;bottom:130px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#eee;padding:8px 14px;border-radius:16px;font-size:13px;max-width:80%;text-align:center;z-index:50;pointer-events:none;border:1px solid rgba(255,255,255,.15);"></div>
+</div>
+
+<!-- END OVERLAY — sits on top of game, board still visible in middle -->
+<div id="endscreen">
+  <!-- Top banner: result -->
+  <div id="e-banner">
+    <div id="e-ico"></div>
+    <div style="flex:1;min-width:0;">
+      <div id="e-title"></div>
+      <div id="e-sub"></div>
+      <div id="e-gover"></div>
+      <div id="e-piedra"></div>
+    </div>
+  </div>
+  <!-- Scores bar -->
+  <div id="e-scores-bar">
+    <div class="e-score-box">
+      <div class="e-score-name" id="e-name-me"></div>
+      <div class="e-score-val" id="e-val-me"></div>
+      <div class="e-score-pts" id="e-pts-me"></div>
+    </div>
+    <div class="e-score-box">
+      <div class="e-score-name" id="e-name-opp"></div>
+      <div class="e-score-val" id="e-val-opp"></div>
+      <div class="e-score-pts" id="e-pts-opp"></div>
+    </div>
+  </div>
+  <!-- Hands area — board visible in center, hands shown here -->
+  <div id="e-hands">
+    <!-- Opp hand (top) -->
+    <div class="e-hand-row" id="e-hand-opp-row">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="e-hand-label" id="e-hand-opp-label"></span>
+        <span class="e-hand-sum" id="e-hand-opp-sum"></span>
+      </div>
+      <div class="e-hand-pieces" id="e-hand-opp-pieces"></div>
+    </div>
+    <!-- Center: board is visible through transparency -->
+    <div style="flex:1;"></div>
+    <!-- My hand (bottom) -->
+    <div class="e-hand-row" id="e-hand-me-row">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="e-hand-label" id="e-hand-me-label"></span>
+        <span class="e-hand-sum" id="e-hand-me-sum"></span>
+      </div>
+      <div class="e-hand-pieces" id="e-hand-me-pieces"></div>
+    </div>
+  </div>
+  <!-- Bottom buttons -->
+  <div id="e-btns-bar">
+    <button class="btn btn-gold" id="b-next" onclick="nextRound()" style="flex:2;">Siguiente mano →</button>
+    <button class="btn btn-gray" onclick="showStats(true)" style="flex:0 0 auto;">📊</button>
+    <button class="btn btn-red" onclick="leaveGame()" style="flex:0 0 auto;">Salir</button>
+  </div>
+  <div id="e-wait"></div>
+</div>
+
+<!-- STATS -->
+<div id="statsscreen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h2 style="color:var(--gold);">📊 Estadísticas</h2>
+    <button class="btn btn-gray" onclick="hideStats()">← Volver</button>
+  </div>
+  <div id="stats-content"></div>
+  <div style="margin-top:16px;"><button class="btn btn-red" onclick="resetStats()">🗑️ Resetear todo</button></div>
+</div>
+
+<script>
+// ── SUPABASE ──────────────────────────────────────────────────
+var sbScript=document.createElement('script');
+sbScript.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+sbScript.onload=function(){window._sb=supabase.createClient('https://zlzkinkaxvhgrfunoonk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsemtpbmtheHZoZ3JmdW5vb25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1NjIsImV4cCI6MjA5MjgyNDU2Mn0.A5jJQksrh8NjTPcKNcrgy6ARvyIltzJU_ktfGHpmdj8');};
+document.head.appendChild(sbScript);
+function getSB(){return window._sb||null;}
+async function dbGet(t,id){
+  if(soloMode&&t==='domino_rooms'&&id===S.room) return curG;
+  var sb=getSB();if(!sb)return null;
+  var r=await sb.from(t).select('data').eq('id',id).single();
+  if(r.error&&r.error.code==='PGRST116')return null;
+  if(r.error){toast('DB error: '+r.error.message);return null;}
+  return r.data?r.data.data:null;
+}
+async function dbSet(t,id,v){
+  if(soloMode&&t==='domino_rooms'&&id===S.room){curG=v;return;}
+  var sb=getSB();if(!sb)return;
+  var r=await sb.from(t).upsert({id:id,data:v,updated_at:new Date().toISOString()});
+  if(r.error)toast('Save error: '+r.error.message);
+}
+
+// ── STATE ──────────────────────────────────────────────────────
+var S={room:'',pidx:-1,name:'',prevScr:'lobby'};
+var soloMode=false; // when true, player controls both hands
+var sel=null,pollT=null,curG=null,lastVer='';
+var touchState={active:false,idx:-1};
+
+// ── UI ─────────────────────────────────────────────────────────
+function showScreen(id){
+  ['lobby','wait','statsscreen'].forEach(function(x){
+    var el=document.getElementById(x);if(!el)return;
+    el.style.display='none';
+  });
+  // endscreen overlays game — don't hide game
+  document.getElementById('endscreen').style.display='none';
+  document.getElementById('endscreen').classList.remove('active');
+
+  var el=document.getElementById(id);if(!el)return;
+  if(id==='lobby'||id==='wait'){el.style.display='flex';el.style.flexDirection='column';}
+  else if(id==='game'){el.style.display='flex';el.style.flexDirection='column';}
+  else if(id==='endscreen'){
+    // Show game underneath
+    document.getElementById('game').style.display='flex';
+    document.getElementById('game').style.flexDirection='column';
+    el.style.display='flex';el.style.flexDirection='column';
+    el.classList.add('active');
+  }
+  else{el.style.display='flex';el.style.flexDirection='column';}
+}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none';},2500);}
+// ── CHAT ───────────────────────────────────────────────────────
+var chatPollT=null, chatLastVer='';
+
+function openChat(){
+  document.getElementById('chat-modal').style.display='flex';
+  loadChatMsgs();
+  setTimeout(function(){document.getElementById('chat-inp').focus();},100);
+}
+function closeChat(){
+  document.getElementById('chat-modal').style.display='none';
+}
+async function loadChatMsgs(){
+  var data=await dbGet('domino_rooms','chat_'+S.room);
+  renderChatMsgs(data||[]);
+}
+function renderChatMsgs(msgs){
+  var ct=document.getElementById('chat-msgs');ct.innerHTML='';
+  (msgs||[]).forEach(function(m){
+    var div=document.createElement('div');
+    div.className='cmsg '+(m.name===S.name?'me':'them');
+    div.innerHTML='<div class="cwho">'+escHtml(m.name)+'</div>'+escHtml(m.text);
+    ct.appendChild(div);
+  });
+  ct.scrollTop=ct.scrollHeight;
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+async function sendChat(){
+  var inp=document.getElementById('chat-inp');
+  var warn=document.getElementById('chat-warn');
+  var txt=(inp.value||'').trim();
+  if(!txt)return;
+  var words=txt.split(/\s+/).filter(Boolean);
+  warn.textContent='';
+  var msgs=await dbGet('domino_rooms','chat_'+S.room)||[];
+  msgs.push({name:S.name, text:words.join(' '), t:Date.now()});
+  if(msgs.length>40)msgs=msgs.slice(-40);
+  await dbSet('domino_rooms','chat_'+S.room, msgs);
+  inp.value='';
+  renderChatMsgs(msgs);
+  showChatBubble(S.name+': '+words.join(' '));
+}
+function showChatBubble(text){
+  var b=document.getElementById('chat-bubble');
+  if(!b)return;
+  b.textContent=text; b.style.display='block';
+  clearTimeout(window._bubbleT);
+  window._bubbleT=setTimeout(function(){b.style.display='none';},3500);
+}
+function startChatPoll(){
+  clearInterval(chatPollT);
+  chatPollT=setInterval(async function(){
+    try{
+      var msgs=await dbGet('domino_rooms','chat_'+S.room);
+      if(!msgs||!msgs.length)return;
+      var last=msgs[msgs.length-1];
+      var v=String(last.t);
+      if(v!==chatLastVer&&last.name!==S.name){
+        chatLastVer=v;
+        showChatBubble(last.name+': '+last.text);
+        if(document.getElementById('chat-modal').style.display==='flex'){
+          renderChatMsgs(msgs);
+        }
+      }
+    }catch(e){}
+  },2500);
+}
+function stopChatPoll(){clearInterval(chatPollT);chatPollT=null;}
+
+function genRoom(){var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r='';for(var i=0;i<5;i++)r+=c[Math.floor(Math.random()*c.length)];document.getElementById('i-room').value=r;}
+
+function startSolo(){
+  soloMode=true;
+  S.pidx=0;
+  S.name='jugador1';
+  S.room='SOLO_'+Date.now();
+  var g=createGame('jugador1','jugador2',null,true);
+  g.status='playing';
+  curG=g;lastVer=String(g.ver);
+  sel=null;
+  showScreen('game');
+  renderGame(g);
+}
+
+function soloSwitchHand(){
+  if(!soloMode||!curG)return;
+  S.pidx=1-S.pidx;
+  sel=null;
+  renderGame(curG);
+  toast('Mano de '+curG.names[S.pidx]);
+}
+
+// ── DOMINO LOGIC ───────────────────────────────────────────────
+var DOTS={
+  0:[0,0,0, 0,0,0, 0,0,0],
+  1:[0,0,0, 0,1,0, 0,0,0],
+  2:[1,0,0, 0,0,0, 0,0,1],
+  3:[1,0,0, 0,1,0, 0,0,1],
+  4:[1,0,1, 0,0,0, 1,0,1],
+  5:[1,0,1, 0,1,0, 1,0,1],
+  6:[1,0,1, 1,0,1, 1,0,1]
+};
+function makeDomSet(){var d=[];for(var i=0;i<=6;i++)for(var j=i;j<=6;j++)d.push([i,j]);return d;}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function hsum(h){return h.reduce(function(a,p){return a+p[0]+p[1];},0);}
+
+function findRequiredDouble(hands){
+  // Find highest double among both hands, starting from 6 down to 0
+  for(var d=6;d>=0;d--){
+    for(var p=0;p<2;p++){
+      for(var i=0;i<hands[p].length;i++){
+        if(hands[p][i][0]===d&&hands[p][i][1]===d) return {val:d, player:p};
+      }
+    }
+  }
+  return null; // no doubles at all (shouldn't happen with full set)
+}
+
+function canP(p,g){
+  // First move of the WHOLE MATCH (not just mano): must play required double
+  if(!g.board.length&&g.firstMove){
+    return p[0]===g.requiredDouble&&p[1]===g.requiredDouble;
+  }
+  if(!g.board.length)return true;
+  return p[0]===g.lEnd||p[1]===g.lEnd||p[0]===g.rEnd||p[1]===g.rEnd;
+}
+
+function createGame(n0,n1,scores,isFirstHand){
+  var all=shuffle(makeDomSet());
+  var h0=all.slice(0,7),h1=all.slice(7,14),by=all.slice(14);
+
+  var first, requiredDouble=null, firstMove=false;
+
+  if(isFirstHand){
+    // First hand of the match: find highest double, that player MUST open with it
+    var rd=findRequiredDouble([h0,h1]);
+    if(rd!==null){
+      requiredDouble=rd.val;
+      first=rd.player;
+      firstMove=true;
+    } else {
+      // No doubles (very rare): fall back to normal
+      first=0; firstMove=false;
+    }
+  } else {
+    // Subsequent hands: highest double goes first (normal rule)
+    first=0; var bd=-1;
+    for(var i=0;i<7;i++)if(h0[i][0]===h0[i][1]&&h0[i][0]>bd){bd=h0[i][0];first=0;}
+    for(var i=0;i<7;i++)if(h1[i][0]===h1[i][1]&&h1[i][0]>bd){bd=h1[i][0];first=1;}
+  }
+
+  return{
+    hands:[h0,h1], boneyard:by, board:[], lEnd:null, rEnd:null,
+    turn:first, names:[n0,n1], scores:scores||[0,0],
+    status:'playing', pass:0, ver:Date.now(),
+    firstMove:firstMove, requiredDouble:requiredDouble
+  };
+}
+
+// ── POLL ───────────────────────────────────────────────────────
+function startPoll(cb){stopPoll();pollT=setInterval(async function(){try{var g=await dbGet('domino_rooms',S.room);if(!g)return;var v=String(g.ver);if(v!==lastVer){lastVer=v;curG=g;cb(g);}}catch(e){}},2000);}
+function stopPoll(){clearInterval(pollT);pollT=null;}
+
+// ── JOIN ───────────────────────────────────────────────────────
+async function joinGame(){
+  var sb=getSB();if(!sb){document.getElementById('l-msg').textContent='Cargando...';setTimeout(joinGame,600);return;}
+  // Normalize name: trim and lowercase so "Etos" and "etos" always match
+  var rawName=(document.getElementById('i-name').value||'').trim();
+  var name=rawName.toLowerCase();
+  var room=(document.getElementById('i-room').value||'').trim().toUpperCase();
+  if(!name){document.getElementById('l-msg').textContent='Ingresá tu nombre.';return;}
+  if(!room){document.getElementById('l-msg').textContent='Ingresá un código.';return;}
+  S.name=name;S.room=room;
+  document.getElementById('l-msg').textContent='Conectando...';
+  var g=await dbGet('domino_rooms',room);
+  if(g&&g.status==='waiting'){S.pidx=1;g.names[1]=name;g.status='playing';g.ver=Date.now();await dbSet('domino_rooms',room,g);startGame(g);}
+  else if(g&&g.status!=='waiting'){
+    if(g.names[0]===name){S.pidx=0;startGame(g);}
+    else if(g.names[1]===name){S.pidx=1;startGame(g);}
+    else document.getElementById('l-msg').textContent='La sala ya está llena.';
+  }else{
+    S.pidx=0;var ng=createGame(name,'...',null,true);ng.status='waiting';await dbSet('domino_rooms',room,ng);
+    document.getElementById('d-room').textContent=room;showScreen('wait');
+    startPoll(function(g2){if(g2.status==='playing')startGame(g2);});
+  }
+}
+function copyRoom(){try{navigator.clipboard.writeText(S.room);}catch(e){}toast('Código: '+S.room);}
+function startGame(g){curG=g;lastVer=String(g.ver);sel=null;showScreen('game');renderGame(g);startChatPoll();startPoll(function(ng){curG=ng;if(ng.status==='round_end'){stopPoll();showRE(ng);}else renderGame(ng);});}
+
+
+function renderBoard(g){
+  var bp=document.getElementById('board-pieces');bp.innerHTML='';
+  var dl=document.getElementById('drop-left');
+  var dr=document.getElementById('drop-right');
+  var ba=document.getElementById('board-area');
+  var aW=ba.clientWidth||320, aH=ba.clientHeight||280;
+
+  if(!g.board.length){
+    bp.innerHTML='<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.25);font-size:13px;text-align:center;pointer-events:none;line-height:1.6;">Mesa vacía<br>Tocá o arrastrá una ficha</div>';
+    document.getElementById('board-inner').style.cssText='position:relative;width:'+aW+'px;height:'+aH+'px;';
+    dl.style.display='none';dr.style.display='none';
+    return;
+  }
+
+  var PAD=16, G=5;
+  var n=g.board.length;
+
+  // ── Dynamic piece size: starts big, shrinks as pieces fill rows ──
+  // Available width for pieces
+  var availW=aW-PAD*2;
+  // Try to fit all pieces in 1 row first (big), then 2 rows, etc.
+  // Each row: maxPerRow H pieces + 1 V corner
+  // H piece: HW wide. V corner: VW wide = HH (square-ish)
+  // Aspect ratio: HW = HH*2 (dominoes are 2:1)
+  // We want pieces as big as possible but fitting in availW
+  // Start with max size and reduce until everything fits nicely
+  var HW, HH, VW, VH, maxPerRow;
+
+  // Calculate ideal size: fit n pieces in minimum rows
+  // Try sizes from large to small
+  var sizes=[
+    {hw:80,hh:44},{hw:70,hh:38},{hw:62,hh:34},{hw:54,hh:30},{hw:46,hh:26},{hw:38,hh:22},{hw:32,hh:18}
+  ];
+
+  var chosen=sizes[sizes.length-1];
+  for(var si=0;si<sizes.length;si++){
+    var sz=sizes[si];
+    var vw=sz.hh, vh=sz.hw; // corner vertical = rotated
+    // How many H pieces fit per row (leaving room for corner)
+    var mpr=Math.max(1, Math.floor((availW-vw-G)/(sz.hw+G)));
+    // How many rows needed? Each row = mpr pieces + 1 corner (except last partial row)
+    // pieces per full segment = mpr + 1 (corner)
+    var segsNeeded=Math.ceil(n/(mpr+1));
+    // Total height = segsNeeded * (vh + G) + sz.hh
+    var totalH=segsNeeded*(vh+G)+sz.hh+PAD*2;
+    if(totalH<=aH*1.8){// allow some scrolling
+      chosen=sz;
+      chosen.mpr=mpr;
+      chosen.vw=vw;
+      chosen.vh=vh;
+      break;
+    }
+  }
+
+  HW=chosen.hw; HH=chosen.hh;
+  VW=chosen.vw||HH; VH=chosen.vh||HW;
+  maxPerRow=chosen.mpr||Math.max(1,Math.floor((availW-VW-G)/(HW+G)));
+
+  // ── Build display chain ──────────────────────────────────
+  var chain=[];
+  for(var i=0;i<g.board.length;i++){
+    var raw=g.board[i].p;
+    var a,b;
+    if(i===0){
+      a=(raw[0]===g.lEnd)?raw[0]:raw[1];
+      b=(raw[0]===g.lEnd)?raw[1]:raw[0];
+    } else {
+      var prevB=chain[i-1].b;
+      a=(raw[0]===prevB)?raw[0]:raw[1];
+      b=(raw[0]===prevB)?raw[1]:raw[0];
+    }
+    chain.push({a:a,b:b});
+  }
+
+  // ── Build positions ──────────────────────────────────────
+  var pos=[];
+  var col=0,rowY=0,rowDir=1,rowStartX=0;
+  var i=0;
+
+  while(i<chain.length){
+    var c=chain[i];
+    if(col<maxPerRow){
+      var px=rowDir===1?rowStartX+col*(HW+G):rowStartX-col*(HW+G)-HW;
+      var pa=rowDir===1?c.a:c.b;
+      var pb=rowDir===1?c.b:c.a;
+      pos.push({x:px,y:rowY-HH/2,w:HW,h:HH,a:pa,b:pb});
+      col++;i++;
+    } else {
+      if(i>=chain.length)break;
+      var cc=chain[i];
+      var cornerX,cornerA,cornerB;
+      if(rowDir===1){
+        cornerX=rowStartX+maxPerRow*(HW+G);
+        cornerA=cc.a;cornerB=cc.b;
+      } else {
+        cornerX=rowStartX-maxPerRow*(HW+G)-VW;
+        cornerA=cc.a;cornerB=cc.b;
+      }
+      pos.push({x:cornerX,y:rowY-HH/2,w:VW,h:VH,a:cornerA,b:cornerB});
+      i++;
+      rowDir*=-1;
+      rowY=rowY-HH/2+VH+G+HH/2;
+      rowStartX=rowDir===1?cornerX+VW+G:cornerX-G;
+      col=0;
+    }
+  }
+
+  // ── Translate: find true bounding box and add PAD on all sides ──
+  var fp=pos[0];
+  var offX=PAD-(fp.x);
+  var offY=PAD-(fp.y);
+
+  // Find min/max with initial offset
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  pos.forEach(function(p){
+    minX=Math.min(minX,p.x+offX);
+    minY=Math.min(minY,p.y+offY);
+    maxX=Math.max(maxX,p.x+offX+p.w);
+    maxY=Math.max(maxY,p.y+offY+p.h);
+  });
+  // If any piece went left of PAD, shift everything right
+  if(minX<PAD){ offX+=PAD-minX; maxX+=PAD-minX; }
+  if(minY<PAD){ offY+=PAD-minY; maxY+=PAD-minY; }
+
+  var totalW=Math.max(aW,maxX+PAD);
+  var totalH=Math.max(aH,maxY+PAD);
+
+  document.getElementById('board-inner').style.cssText='position:relative;width:'+totalW+'px;height:'+totalH+'px;';
+  pos.forEach(function(p){
+    var el=makeBoardPiece([p.a,p.b],p.w,p.h);
+    el.style.left=(p.x+offX)+'px';
+    el.style.top=(p.y+offY)+'px';
+    bp.appendChild(el);
+  });
+
+  if(g.board.length===1){
+    setTimeout(function(){ba.scrollLeft=0;ba.scrollTop=0;},30);
+  }
+
+  // ── Drop zones ───────────────────────────────────────────
+  var me=S.pidx,myT=g.turn===me;
+  var first=pos[0],last=pos[pos.length-1];
+  var selP=myT&&sel!==null?curG.hands[me][sel]:null;
+  var fitsL=selP&&(selP[0]===g.lEnd||selP[1]===g.lEnd);
+  var fitsR=selP&&(selP[0]===g.rEnd||selP[1]===g.rEnd);
+  if(fitsL){
+    var fx=first.x+offX,fy=first.y+offY;
+    dl.style.cssText='display:flex;width:40px;height:60px;left:'+(fx-46)+'px;top:'+(fy+first.h/2-30)+'px;';
+    dl.textContent='['+g.lEnd+']';dl.className='drop-zone';
+  } else dl.style.display='none';
+  if(fitsR){
+    var lx=last.x+offX+last.w,ly=last.y+offY;
+    dr.style.cssText='display:flex;width:40px;height:60px;left:'+(lx+6)+'px;top:'+(ly+last.h/2-30)+'px;';
+    dr.textContent='['+g.rEnd+']';dr.className='drop-zone';
+  } else dr.style.display='none';
+}
+
+function makeHalf(n, dotSz){
+  var h=document.createElement('div');
+  var ds=dotSz||7;
+  h.style.cssText='position:relative;width:100%;flex:1;';
+  var POS={
+    0:[],
+    1:[[50,50]],
+    2:[[30,28],[70,72]],
+    3:[[28,24],[50,50],[72,76]],
+    4:[[28,26],[72,26],[28,74],[72,74]],
+    5:[[28,24],[72,24],[50,50],[28,76],[72,76]],
+    6:[[28,20],[72,20],[28,50],[72,50],[28,80],[72,80]]
+  };
+  var positions=POS[n]||POS[0];
+  positions.forEach(function(p){
+    var d=document.createElement('div');
+    d.style.cssText='position:absolute;width:'+ds+'px;height:'+ds+'px;border-radius:50%;'+
+      'background:#3a2010;'+
+      'left:calc('+p[0]+'% - '+Math.round(ds/2)+'px);'+
+      'top:calc('+p[1]+'% - '+Math.round(ds/2)+'px);';
+    h.appendChild(d);
+  });
+  return h;
+}
+
+function makeBoardPiece(p, w, h){
+  var el=document.createElement('div');
+  var isH=(w>h);
+  var ds=isH?Math.round(w*0.11):Math.round(w*0.17);
+  el.style.cssText='position:absolute;width:'+w+'px;height:'+h+'px;'+
+    'display:flex;align-items:stretch;justify-content:space-between;'+
+    'background:linear-gradient(160deg,#fdfaf3,#f2e9d8);'+
+    'border:2px solid #c8b48a;border-radius:9px;padding:4px;'+
+    'box-shadow:0 3px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.9);'+
+    (isH?'flex-direction:row;':'flex-direction:column;');
+  var sep=document.createElement('div');
+  sep.style.cssText=isH
+    ?'width:2px;background:linear-gradient(to bottom,transparent,#c0a070 30%,#c0a070 70%,transparent);flex-shrink:0;align-self:stretch;margin:3px 0;border-radius:1px;'
+    :'height:2px;background:linear-gradient(to right,transparent,#c0a070 30%,#c0a070 70%,transparent);flex-shrink:0;align-self:stretch;margin:0 3px;border-radius:1px;';
+  el.appendChild(makeHalf(p[0],ds));el.appendChild(sep);el.appendChild(makeHalf(p[1],ds));
+  return el;
+}
+
+// ── RENDER HAND ────────────────────────────────────────────────
+function renderHand(g){
+  var me=S.pidx, myT=(g.turn===me);
+  var ha=document.getElementById('hand-area');ha.innerHTML='';
+  var count=g.hands[me].length;
+  var sz=count>10?30:count>7?34:38;
+  var dotSz=count>10?5:count>7?6:7;
+
+  g.hands[me].forEach(function(p,i){
+    var ok=myT&&canP(p,g);
+    var el=document.createElement('div');
+    var borderCol=sel===i?'#e8c96d':ok?'#27c96a':'#c8b48a';
+    var borderW=sel===i?'2.5px':ok?'2.5px':'2px';
+    var shadow=sel===i
+      ?'0 0 0 3px rgba(232,201,109,.5),0 6px 16px rgba(0,0,0,.5)'
+      :ok?'0 0 0 2px rgba(39,201,106,.3),0 3px 10px rgba(0,0,0,.4)'
+      :'0 3px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.9)';
+    el.style.cssText='width:'+sz+'px;height:'+(sz*1.9)+'px;'+
+      'display:inline-flex;flex-direction:column;align-items:stretch;justify-content:space-between;'+
+      'background:linear-gradient(160deg,#fdfaf3,#f2e9d8);'+
+      'border:'+borderW+' solid '+borderCol+';border-radius:9px;padding:3px;'+
+      'cursor:pointer;flex-shrink:0;touch-action:none;'+
+      'box-shadow:'+shadow+';'+
+      'transition:transform .15s,box-shadow .15s;'+
+      (sel===i?'transform:translateY(-8px);':'');
+    el.dataset.idx=i;
+    var sep=document.createElement('div');
+    sep.style.cssText='height:2px;background:linear-gradient(to right,transparent,#c0a070 30%,#c0a070 70%,transparent);flex-shrink:0;align-self:stretch;margin:0 2px;border-radius:1px;';
+    el.appendChild(makeHalf(p[0],dotSz));el.appendChild(sep);el.appendChild(makeHalf(p[1],dotSz));
+    el.addEventListener('touchstart',onTouchStart,{passive:false});
+    el.addEventListener('touchmove',onTouchMove,{passive:false});
+    el.addEventListener('touchend',onTouchEnd);
+    el.addEventListener('click',function(){
+      if(!myT)return;
+      var idx=parseInt(this.dataset.idx);
+      sel=(sel===idx)?null:idx;
+      renderGame(curG);
+    });
+    ha.appendChild(el);
+  });
+}
+
+// ── RENDER GAME ────────────────────────────────────────────────
+function renderGame(g){
+  if(!g)return;
+  var me=S.pidx,opp=1-me,myT=(g.turn===me);
+  
+  // Top bar
+  document.getElementById('pn-you').textContent=g.names[me];
+  document.getElementById('pn-opp').textContent=g.names[opp]||'...';
+  document.getElementById('ps-you').textContent=g.scores[me];
+  document.getElementById('ps-opp').textContent=g.scores[opp];
+  var pcY=document.getElementById('pc-you'),pcO=document.getElementById('pc-opp');
+  pcY.className='pcard you'+(g.scores[me]>g.scores[opp]?' leading':'');
+  pcO.className='pcard opp'+(g.scores[opp]>g.scores[me]?' leading':'');
+  var tb=document.getElementById('turn-badge');
+  tb.textContent=myT?'Tu turno':'Turno de '+(g.names[opp]||'rival');
+  tb.className=myT?'turn-you':'turn-opp';
+  document.getElementById('board-area').className=myT?'my-turn':'';
+  var oh=document.getElementById('opp-hand');oh.innerHTML='';
+  document.getElementById('opp-label').textContent=(g.names[opp]||'Rival')+' ('+g.hands[opp].length+')';
+  // In solo mode: show opp cards face-up
+  for(var i=0;i<g.hands[opp].length;i++){var ob=document.createElement('div');ob.className='opp-back';oh.appendChild(ob);}
+
+  // Solo mode UI
+  var soloBtn=document.getElementById('btn-solo-switch');
+  if(soloMode){
+    soloBtn.style.display='inline-block';
+    soloBtn.textContent='🔄 '+g.names[1-me];
+    // Show whose turn it is clearly
+    soloBtn.style.background=myT?'rgba(39,174,96,.25)':'rgba(231,76,60,.15)';
+    soloBtn.style.borderColor=myT?'rgba(39,174,96,.5)':'rgba(231,76,60,.3)';
+    soloBtn.style.color=myT?'#2ecc71':'#e74c3c';
+  } else {
+    soloBtn.style.display='none';
+  }
+  
+  // Board
+  renderBoard(g);
+  
+  // Pozo
+  document.getElementById('g-yard').textContent=g.boneyard.length;
+  var pp=document.getElementById('pozo-pile');pp.innerHTML='';
+  var pileN=Math.min(g.boneyard.length,14);
+  var pileW=g.boneyard.length>10?14:18;
+  for(var i=0;i<pileN;i++){var pb=document.createElement('div');pb.style.cssText='width:'+pileW+'px;height:32px;background:linear-gradient(135deg,#2d5016,#1a3009);border:1px solid #4a7a20;border-radius:3px;margin-left:'+(i>0?'-5px':'0')+'px;flex-shrink:0;';pp.appendChild(pb);}
+  document.getElementById('btn-draw').disabled=!(myT&&g.boneyard.length>2);
+  
+  // Hand
+  renderHand(g);
+  
+  // Actions
+  var hasOk=g.hands[me].some(function(x){return canP(x,g);});
+
+  // Show auto-pass notification to both players (only once)
+  if(g.autoPassMsg&&g.autoPassAt&&window._lastAutoPassAt!==g.autoPassAt){
+    window._lastAutoPassAt=g.autoPassAt;
+    toast(g.autoPassMsg, 4000);
+  }
+
+  var msg;
+  if(myT){
+    if(g.firstMove&&g.requiredDouble!==null){
+      msg='🎯 Primera jugada: debés salir con el ['+g.requiredDouble+'|'+g.requiredDouble+']';
+    } else if(hasOk){
+      msg='Arrastrá o tocá ficha verde';
+    } else if(g.boneyard.length>2){
+      msg='Sin jugadas — robá del pozo';
+    } else {
+      msg='⏳ Sin jugadas — pase automático...';
+    }
+  } else {
+    if(g.firstMove&&g.requiredDouble!==null){
+      msg=(g.names[opp]||'rival')+' debe salir con el ['+g.requiredDouble+'|'+g.requiredDouble+']';
+    } else {
+      msg='Esperando a '+(g.names[opp]||'rival')+'...';
+    }
+  }
+  document.getElementById('game-msg').textContent=msg;
+}
+
+// ── STABLE BOARD LAYOUT ────────────────────────────────────────
+// Store layout state so existing pieces don't move when new ones are added
+var boardLayout = {
+  positions: [],    // {x,y,w,h,a,b} for each piece
+  boardLen: 0,      // number of pieces already laid out
+  // Layout cursor state
+  row: 0, col: 0, rowY: 0, rowDir: 1, rowStartX: 0,
+  HW:54, HH:30, VW:30, VH:54, G:4, maxPerRow:4,
+  totalW:0, totalH:0
+};
+
+function resetBoardLayout(){
+  boardLayout.positions=[];
+  boardLayout.boardLen=0;
+  boardLayout.row=0; boardLayout.col=0;
+  boardLayout.rowY=0; boardLayout.rowDir=1; boardLayout.rowStartX=0;
+  boardLayout.totalW=0; boardLayout.totalH=0;
+}
+
+function computeChain(board, lEnd){
+  var chain=[];
+  for(var i=0;i<board.length;i++){
+    var raw=board[i].p;
+    var a,b;
+    if(i===0){
+      a=(raw[0]===lEnd)?raw[0]:raw[1];
+      b=(raw[0]===lEnd)?raw[1]:raw[0];
+    } else {
+      var prevB=chain[i-1].b;
+      a=(raw[0]===prevB)?raw[0]:raw[1];
+      b=(raw[0]===prevB)?raw[1]:raw[0];
+    }
+    chain.push({a:a,b:b});
+  }
+  return chain;
+}
+
+function addPieceToLayout(c, aW){
+  var L=boardLayout;
+  var HW=L.HW,HH=L.HH,VW=L.VW,VH=L.VH,G=L.G;
+  var pos;
+
+  if(L.boardLen===0){
+    // First piece: horizontal, start at a fixed position
+    var startX = Math.max(40, (aW-HW)/2 - L.maxPerRow*(HW+G)/2);
+    L.rowStartX = startX;
+    L.rowY = 80; // fixed starting Y
+    pos = {x:startX, y:L.rowY-HH/2, w:HW, h:HH, a:c.a, b:c.b};
+    L.col=1;
+  } else if(L.col < L.maxPerRow){
+    // Normal horizontal piece in current row
+    var px = L.rowDir===1
+      ? L.rowStartX + L.col*(HW+G)
+      : L.rowStartX - L.col*(HW+G) - HW;
+    var pa = L.rowDir===1 ? c.a : c.b;
+    var pb = L.rowDir===1 ? c.b : c.a;
+    pos = {x:px, y:L.rowY-HH/2, w:HW, h:HH, a:pa, b:pb};
+    L.col++;
+  } else {
+    // End of row: place vertical corner
+    var cornerX;
+    if(L.rowDir===1){
+      cornerX = L.rowStartX + L.maxPerRow*(HW+G);
+    } else {
+      cornerX = L.rowStartX - L.maxPerRow*(HW+G) - VW;
+    }
+    var cornerA = L.rowDir===1 ? c.a : c.b;
+    var cornerB = L.rowDir===1 ? c.b : c.a;
+    pos = {x:cornerX, y:L.rowY-HH/2, w:VW, h:VH, a:cornerA, b:cornerB};
+    // Advance to next row
+    L.row++; L.rowDir*=-1;
+    L.rowY = L.rowY-HH/2 + VH + G + HH/2;
+    if(L.rowDir===1){ L.rowStartX = cornerX+VW+G; }
+    else { L.rowStartX = cornerX-G; }
+    L.col=0;
+  }
+
+  L.positions.push(pos);
+  L.boardLen++;
+
+  // Update total bounds
+  var right=pos.x+pos.w, bottom=pos.y+pos.h;
+  if(right+40>L.totalW) L.totalW=right+40;
+  if(bottom+40>L.totalH) L.totalH=bottom+40;
+
+  return pos;
+}
+function ghostForPiece(p, sz){
+  var ghost=document.getElementById('drag-ghost');
+  ghost.innerHTML='';ghost.style.width=sz+'px';ghost.style.height=(sz*1.85)+'px';
+  ghost.style.flexDirection='column';
+  var sep=document.createElement('div');
+  sep.style.cssText='height:1.5px;background:linear-gradient(to right,transparent,#b8a070,transparent);flex-shrink:0;align-self:stretch;margin:0 2px;';
+  ghost.appendChild(makeHalf(p[0],7));ghost.appendChild(sep);ghost.appendChild(makeHalf(p[1],7));
+  ghost.style.display='flex';
+}
+
+function onTouchStart(e){
+  var me=S.pidx;if(!curG||curG.turn!==me)return;
+  e.preventDefault();
+  var t=e.touches[0];
+  var idx=parseInt(e.currentTarget.dataset.idx);
+  sel=idx;touchState.active=true;touchState.idx=idx;
+  var p=curG.hands[me][idx];
+  ghostForPiece(p,44);
+  document.getElementById('drag-ghost').style.left=(t.clientX-22)+'px';
+  document.getElementById('drag-ghost').style.top=(t.clientY-40)+'px';
+  renderGame(curG);
+}
+function onTouchMove(e){
+  if(!touchState.active)return;e.preventDefault();
+  var t=e.touches[0];
+  document.getElementById('drag-ghost').style.left=(t.clientX-22)+'px';
+  document.getElementById('drag-ghost').style.top=(t.clientY-40)+'px';
+  // Highlight drop zones
+  var over=document.elementFromPoint(t.clientX,t.clientY);
+  var dl=document.getElementById('drop-left'),dr=document.getElementById('drop-right');
+  if(dl.style.display!=='none') dl.className=(over&&dl.contains(over))||over===dl?'drop-zone hot':'drop-zone';
+  if(dr.style.display!=='none') dr.className=(over&&dr.contains(over))||over===dr?'drop-zone hot':'drop-zone';
+}
+function onTouchEnd(e){
+  if(!touchState.active)return;touchState.active=false;
+  document.getElementById('drag-ghost').style.display='none';
+  var t=e.changedTouches[0];
+  var over=document.elementFromPoint(t.clientX,t.clientY);
+  var dl=document.getElementById('drop-left'),dr=document.getElementById('drop-right');
+  var ba=document.getElementById('board-area');
+  dl.className='drop-zone';dr.className='drop-zone';
+  if(over&&(over===dl||dl.contains(over))) { handlePlay('l'); }
+  else if(over&&(over===dr||dr.contains(over))) { handlePlay('r'); }
+  else if(over&&(ba.contains(over)||over===ba)) { handlePlayOnBoard(); }
+}
+
+// ── PLAY ───────────────────────────────────────────────────────
+async function handlePlay(side){
+  if(sel===null||!curG)return;
+  var g=await dbGet('domino_rooms',S.room);
+  if(!g||g.turn!==S.pidx){return;}
+  var me=S.pidx,p=g.hands[me][sel];
+  if(!p){sel=null;return;}
+  if(!canP(p,g)){toast('Esa ficha no conecta.');sel=null;renderGame(g);return;}
+  if(!g.board.length){await doPlay(g,p,'r');return;}
+  await doPlay(g,p,side);
+}
+
+function handlePlayOnBoard(){
+  if(sel===null||!curG)return;
+  var me=S.pidx;if(curG.turn!==me)return;
+  var p=curG.hands[me][sel];
+  if(!curG.board.length){handlePlay('r');return;}
+  if(!canP(p,curG)){toast('Esa ficha no conecta.');return;}
+  var fL=p[0]===curG.lEnd||p[1]===curG.lEnd;
+  var fR=p[0]===curG.rEnd||p[1]===curG.rEnd;
+  if(fL&&fR&&curG.lEnd!==curG.rEnd) showSideChoice(); // only ask if ends are different
+  else if(fL) handlePlay('l');
+  else if(fR) handlePlay('r');
+  else toast('Esa ficha no conecta.');
+}
+
+// Tap on board when piece selected
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('board-area').addEventListener('click',function(){
+    if(sel!==null&&curG&&curG.turn===S.pidx) handlePlayOnBoard();
+  });
+});
+
+function showSideChoice(){
+  var g=curG;
+  var div=document.createElement('div');
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:800;';
+  div.innerHTML='<div style="background:#1b4332;border:1px solid rgba(232,201,109,.3);border-radius:14px;padding:20px;max-width:280px;width:90%;text-align:center;">'+
+    '<p style="color:#eee;margin-bottom:14px;font-size:14px;">Conecta en ambos lados. ¿Dónde jugás?</p>'+
+    '<div style="display:flex;gap:10px;">'+
+      '<button class="btn btn-gray" style="flex:1;" id="sc-l">← ['+g.lEnd+']</button>'+
+      '<button class="btn btn-gray" style="flex:1;" id="sc-r">['+g.rEnd+'] →</button>'+
+    '</div></div>';
+  document.body.appendChild(div);
+  div.querySelector('#sc-l').onclick=function(){document.body.removeChild(div);handlePlay('l');};
+  div.querySelector('#sc-r').onclick=function(){document.body.removeChild(div);handlePlay('r');};
+}
+
+async function doPlay(g,p,side){
+  var me=S.pidx;
+
+  if(!g.board.length){
+    // First piece: left half = p[0] = lEnd, right half = p[1] = rEnd
+    g.board.push({p:p, fl:false});
+    g.lEnd=p[0]; g.rEnd=p[1];
+    g.firstMove=false; // first move done, rule no longer applies
+  } else if(side==='l'){
+    // Adding to LEFT of chain.
+    // The end that matches lEnd must appear on the RIGHT half of this piece (touching chain).
+    // The other end appears on LEFT half (becomes new lEnd).
+    // fl=false → display [p[0] | p[1]]: left=p[0], right=p[1]
+    // fl=true  → display [p[1] | p[0]]: left=p[1], right=p[0]
+    // We want: right half = matching end = lEnd
+    // If p[1]===lEnd → right=p[1]=lEnd already → fl=false, newLEnd=p[0]
+    // If p[0]===lEnd → right must be p[0], so flip → fl=true → display [p[1]|p[0]], right=p[0]=lEnd → newLEnd=p[1]
+    var fl = (p[0]===g.lEnd);
+    g.board.unshift({p:p, fl:fl});
+    g.lEnd = fl ? p[1] : p[0]; // left half of displayed piece is new lEnd
+  } else {
+    // Adding to RIGHT of chain.
+    // The end that matches rEnd must appear on the LEFT half of this piece (touching chain).
+    // The other end appears on RIGHT half (becomes new rEnd).
+    // fl=false → display [p[0] | p[1]]: left=p[0], right=p[1]
+    // fl=true  → display [p[1] | p[0]]: left=p[1], right=p[0]
+    // We want: left half = matching end = rEnd
+    // If p[0]===rEnd → left=p[0]=rEnd already → fl=false, newREnd=p[1]
+    // If p[1]===rEnd → left must be p[1], so flip → fl=true → display [p[1]|p[0]], left=p[1]=rEnd → newREnd=p[0]
+    var fl = (p[1]===g.rEnd);
+    g.board.push({p:p, fl:fl});
+    g.rEnd = fl ? p[0] : p[1]; // right half of displayed piece is new rEnd
+  }
+
+  g.hands[me].splice(sel,1);sel=null;g.pass=0;
+  if(!g.hands[me].length){await endRound(g,me,'domino');return;}
+  g.turn=1-me;
+  g.pass=0;
+  var p0ok=g.hands[0].some(function(x){return canP(x,g);}),p1ok=g.hands[1].some(function(x){return canP(x,g);});
+  if(g.boneyard.length<=2&&!p0ok&&!p1ok){
+    var s0=hsum(g.hands[0]),s1=hsum(g.hands[1]);
+    var w=s0<s1?0:s1<s0?1:g.turn;
+    await endRound(g,w,'tranca');return;
+  }
+  // Auto-pass rival if they can't play and boneyard empty
+  var nxt=g.turn;
+  var nxtOk=g.hands[nxt].some(function(x){return canP(x,g);});
+  if(!nxtOk&&g.boneyard.length<=2){
+    await autoPass(g,nxt);
+    return;
+  }
+  g.autoPassMsg=null;
+  g.ver=Date.now();lastVer=String(g.ver);await dbSet('domino_rooms',S.room,g);curG=g;
+  // Solo mode: auto-switch to the player whose turn it is
+  if(soloMode) S.pidx=g.turn;
+  renderGame(g);
+}
+
+async function drawFromPozo(){
+  var g=await dbGet('domino_rooms',S.room);if(!g||g.turn!==S.pidx)return;
+  if(g.boneyard.length<=2){
+    // Can't draw — check if we can play anything
+    var me=S.pidx;
+    if(g.hands[me].some(function(x){return canP(x,g);})){
+      toast('El pozo tiene mínimo 2 fichas — jugá una de las tuyas.');
+      return;
+    }
+    // Can't play either → auto-pass
+    await autoPass(g, me);
+    return;
+  }
+  var dr=g.boneyard.pop();
+  g.hands[S.pidx].push(dr);
+  sel=null;
+  if(canP(dr,g)){
+    toast('Robaste ['+dr[0]+'|'+dr[1]+'] — podés jugarlo ✓');
+  } else {
+    toast('Robaste ['+dr[0]+'|'+dr[1]+']');
+  }
+  g.ver=Date.now();lastVer=String(g.ver);
+  await dbSet('domino_rooms',S.room,g);curG=g;renderGame(g);
+}
+
+async function autoPass(g, me){
+  // Auto-pass for player me — no moves, no draws available
+  g.pass=(g.pass||0)+1;
+  var msg=g.names[me]+' no tiene jugadas — pase automático';
+  g.autoPassMsg=msg; g.autoPassAt=Date.now();
+  if(g.pass>=2){
+    // Both players passed → tranca
+    var s0=hsum(g.hands[0]),s1=hsum(g.hands[1]);
+    var w=s0<s1?0:s1<s0?1:me;
+    await endRound(g,w,'tranca');return;
+  }
+  g.turn=1-me;
+  // Check if next player also can't play
+  var nxt=g.turn;
+  var nxtOk=g.hands[nxt].some(function(x){return canP(x,g);});
+  if(!nxtOk&&g.boneyard.length<=2){
+    // Next player also can't → auto-pass again → tranca
+    g.pass=(g.pass||0)+1;
+    var s0=hsum(g.hands[0]),s1=hsum(g.hands[1]);
+    var w=s0<s1?0:s1<s0?1:nxt;
+    await endRound(g,w,'tranca');return;
+  }
+  g.ver=Date.now();lastVer=String(g.ver);
+  await dbSet('domino_rooms',S.room,g);curG=g;renderGame(g);
+  toast(msg, 4000);
+}
+
+async function endRound(g,winner,type){
+  var loser=1-winner;
+  // In both domino and tranca: winner scores the LOSER's full hand sum
+  var rawSum=hsum(g.hands[loser]);
+  var pts=rawSum;
+  g.scores[winner]+=pts;
+  var gameOver=g.scores[0]>=101||g.scores[1]>=101;
+  var piedra=false;
+  if(gameOver){
+    piedra=(g.scores[loser]<51);
+    if(piedra) g.piedraLoser=loser;
+  }
+  // Save hands snapshot so both players can see remaining tiles
+  g.roundResult={
+    winner:winner, loser:loser, rawSum:rawSum, pts:pts,
+    piedra:piedra, type:type, gameOver:gameOver,
+    hands:[g.hands[0].slice(), g.hands[1].slice()]
+  };
+  if(gameOver)await saveMatchStats(g);
+  g.status='round_end';g.ver=Date.now();lastVer=String(g.ver);
+  await dbSet('domino_rooms',S.room,g);showRE(g);
+}
+
+function miniDom(p){
+  function mhalf(n){
+    var h='<div style="position:relative;width:100%;flex:1;">';
+    var POS={0:[],1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,22],[75,22],[25,50],[75,50],[25,78],[75,78]]};
+    (POS[n]||POS[0]).forEach(function(pos){
+      h+='<div style="position:absolute;width:4px;height:4px;border-radius:50%;background:#1a0f00;left:calc('+pos[0]+'% - 2px);top:calc('+pos[1]+'% - 2px);"></div>';
+    });
+    return h+'</div>';
+  }
+  return '<div style="display:inline-flex;flex-direction:column;align-items:stretch;justify-content:space-between;width:26px;height:48px;background:linear-gradient(145deg,#faf6ee,#f0e8d4);border:1.5px solid #c8b890;border-radius:5px;padding:2px;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,.3);">'+
+    mhalf(p[0])+
+    '<div style="height:1px;background:linear-gradient(to right,transparent,#b8a070,transparent);flex-shrink:0;margin:0 2px;"></div>'+
+    mhalf(p[1])+
+  '</div>';
+}
+
+function showRE(g){
+  stopPoll();
+  var r=g.roundResult, me=S.pidx, myWin=(r.winner===me);
+  showScreen('endscreen');
+  document.getElementById('e-ico').textContent=myWin?'🏆':'😔';
+  var typeLabel=r.type==='domino'?'Dominó':'Tranca';
+  document.getElementById('e-title').textContent=(myWin?'¡Ganaste esta mano!':'Perdiste esta mano')+' — '+typeLabel;
+
+  if(r.piedra&&r.gameOver){
+    document.getElementById('e-piedra').innerHTML='<span class="piedra-badge">🪨 PIEDRA — '+g.names[r.loser]+' terminó con menos de 51 pts → vale doble</span>';
+  } else {
+    document.getElementById('e-piedra').innerHTML='';
+  }
+
+  // Summary line
+  if(r.type==='domino'){
+    document.getElementById('e-sub').textContent=g.names[r.winner]+' dominó → +'+r.pts+' pts';
+  } else {
+    document.getElementById('e-sub').textContent=g.names[r.loser]+' tenía '+r.rawSum+' pts en mano → +'+r.pts+' pts para '+g.names[r.winner];
+  }
+
+  var gw=g.scores[0]>g.scores[1]?g.names[0]:g.names[1];
+  document.getElementById('e-gover').textContent=r.gameOver
+    ?('🎉 ¡'+gw+' ganó la partida!'+(r.piedra?' 🪨 PIEDRA!':''))
+    :'La partida continúa...';
+  document.getElementById('b-next').textContent=r.gameOver?'Ver estadísticas →':'Siguiente mano →';
+  document.getElementById('e-wait').textContent='';
+
+  // Remaining hands section
+  var handsHtml='';
+  [0,1].forEach(function(pidx){
+    var hand=r.hands?r.hands[pidx]:g.hands[pidx];
+    var sum=hand.reduce(function(a,p){return a+p[0]+p[1];},0);
+    var isMe=(pidx===me);
+    var nameLabel=g.names[pidx]+(isMe?' (vos)':'');
+    var sumColor=sum===0?'#2ecc71':isMe?'var(--gold)':'#e87060';
+    handsHtml+='<div style="margin-bottom:8px;padding:10px;background:rgba(0,0,0,.25);border-radius:8px;border:1px solid rgba(255,255,255,.08);">';
+    handsHtml+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    handsHtml+='<span style="font-size:13px;font-weight:600;color:'+(isMe?'var(--gold)':'#e87060')+';">'+nameLabel+'</span>';
+    handsHtml+='<span style="font-family:monospace;font-size:1.15rem;font-weight:700;color:'+sumColor+';">'+sum+' pts</span>';
+    handsHtml+='</div>';
+    if(hand.length>0){
+      handsHtml+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+      hand.forEach(function(p){ handsHtml+=miniDom(p); });
+      handsHtml+='</div>';
+    } else {
+      handsHtml+='<span style="font-size:12px;color:#7ec8a0;">Sin fichas ✓</span>';
+    }
+    handsHtml+='</div>';
+  });
+
+  // Scores + hands together
+  document.getElementById('e-scores').innerHTML=
+    // Current accumulated scores
+    '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
+      '<div style="flex:1;text-align:center;padding:8px;background:rgba(0,0,0,.2);border-radius:8px;">'+
+        '<div style="font-family:monospace;font-size:1.5rem;font-weight:700;color:var(--gold);">'+g.scores[me]+'</div>'+
+        '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">'+g.names[me]+' / 101</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;color:#555;font-size:1.1rem;padding:0 4px;">vs</div>'+
+      '<div style="flex:1;text-align:center;padding:8px;background:rgba(0,0,0,.2);border-radius:8px;">'+
+        '<div style="font-family:monospace;font-size:1.5rem;font-weight:700;color:var(--gold);">'+g.scores[1-me]+'</div>'+
+        '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">'+g.names[1-me]+' / 101</div>'+
+      '</div>'+
+    '</div>'+
+    // Remaining hands
+    '<div style="font-size:11px;color:#7ec8a0;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Fichas que quedaron</div>'+
+    handsHtml;
+}
+
+async function nextRound(){
+  var g=await dbGet('domino_rooms',S.room);if(!g)return;
+  if(g.roundResult&&g.roundResult.gameOver){showStats(true);return;}
+  var ng=createGame(g.names[0],g.names[1],g.scores,false);
+  ng.status='playing';ng.ver=Date.now();
+  if(soloMode){
+    curG=ng;lastVer=String(ng.ver);S.pidx=0;sel=null;
+    showScreen('game');renderGame(ng);
+  } else if(S.pidx===0){
+    await dbSet('domino_rooms',S.room,ng);lastVer=String(ng.ver);startGame(ng);
+  } else {
+    document.getElementById('e-wait').textContent='Esperando que el rival inicie...';
+    document.getElementById('b-next').disabled=true;
+    startPoll(function(ng){if(ng&&ng.status==='playing'&&!ng.roundResult){document.getElementById('b-next').disabled=false;startGame(ng);}});
+  }
+}
+
+async function saveMatchStats(g){
+  var sb=getSB();if(!sb)return;
+  var names=g.names.slice().sort(),key=names.join('_vs_');
+  var st=await dbGet('domino_stats',key)||{names:names,matches:0,wins:{},piedras:{},totalPts:{}};
+  st.names=names;
+  var r=g.roundResult;
+  var wName=g.scores[0]>g.scores[1]?g.names[0]:g.names[1];
+  var lName=g.names[g.scores[0]>g.scores[1]?1:0];
+  if(r&&r.piedra){
+    // Piedra: cuenta como 2 partidas ganadas
+    st.matches+=2;
+    st.wins[wName]=(st.wins[wName]||0)+2;
+    st.piedras[lName]=(st.piedras[lName]||0)+1;
+  } else {
+    st.matches+=1;
+    st.wins[wName]=(st.wins[wName]||0)+1;
+  }
+  g.names.forEach(function(n,i){st.totalPts[n]=(st.totalPts[n]||0)+g.scores[i];});
+  await dbSet('domino_stats',key,st);
+}
+
+var _prevScr='lobby';
+async function showStats(fromGame){
+  _prevScr=fromGame?(document.getElementById('endscreen').style.display!=='none'?'endscreen':'game'):'lobby';
+  showScreen('statsscreen');
+  var ct=document.getElementById('stats-content');ct.innerHTML='<p style="color:#7ec8a0;">Cargando...</p>';
+  var sb=getSB();if(!sb){ct.innerHTML='<p style="color:#aaa;">Sin conexión.</p>';return;}
+  var res=await sb.from('domino_stats').select('data');
+  var all=res.data?res.data.map(function(r){return r.data;}).filter(Boolean):[];
+  if(!all.length){ct.innerHTML='<p style="color:#aaa;text-align:center;padding:2rem;">No hay estadísticas aún.</p>';return;}
+  var html='';
+  all.forEach(function(st){
+    var ns=st.names||[];
+    html+='<div class="stat-card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><strong style="color:var(--gold);">'+ns.join(' vs ')+'</strong><span style="color:#aaa;">'+st.matches+' partidas</span></div>';
+    ns.forEach(function(name){
+      var wins=st.wins[name]||0,pied=st.piedras[name]||0,pts=st.totalPts[name]||0,pct=st.matches>0?Math.round(wins/st.matches*100):0;
+      html+='<div style="background:rgba(0,0,0,.3);border-radius:8px;padding:10px;margin-bottom:8px;"><div style="font-weight:600;margin-bottom:8px;color:#eee;">'+name+'</div><div class="stat-grid">';
+      html+='<div><div class="stat-big" style="color:var(--gold);">'+wins+'</div><div style="font-size:10px;color:#aaa;">Victorias</div></div>';
+      html+='<div><div class="stat-big" style="color:var(--red);">'+pied+'</div><div style="font-size:10px;color:#aaa;">Piedras</div></div>';
+      html+='<div><div class="stat-big">'+pct+'%</div><div style="font-size:10px;color:#aaa;">Win rate</div></div>';
+      html+='<div><div class="stat-big" style="color:#aaa;">'+pts+'</div><div style="font-size:10px;color:#aaa;">Pts totales</div></div>';
+      html+='</div></div>';
+    });
+    html+='</div>';
+  });
+  ct.innerHTML=html;
+}
+function hideStats(){showScreen(_prevScr);if(_prevScr==='game'&&curG)renderGame(curG);}
+async function resetStats(){
+  if(!confirm('Borrar todas las estadísticas?'))return;
+  var sb=getSB();if(!sb)return;
+  await sb.from('domino_stats').delete().neq('id','__none__');
+  toast('Borrado.');showStats(false);
+}
+function leaveGame(){stopPoll();stopChatPoll();sel=null;curG=null;lastVer='';soloMode=false;showScreen('lobby');}
+
+genRoom();
+</script>
+</body>
+</html>
