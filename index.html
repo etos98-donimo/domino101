@@ -32,7 +32,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;backgrou
 
 /* GAME */
 #game{position:fixed;inset:0;display:none;flex-direction:column;background:var(--board);}
-#topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;height:52px;}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:3px 8px;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;height:42px;}
 .pname{font-size:12px;font-weight:700;color:#eee;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pscore{font-size:22px;font-weight:900;line-height:1;}
 .pcard{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,.3);border-radius:8px;padding:4px 10px;min-width:70px;}
@@ -46,8 +46,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;backgrou
 #board-area{flex:1;overflow:auto;position:relative;background:radial-gradient(ellipse at center,#2d6a4f 0%,#1b4332 100%);transition:filter .5s;}
 
 /* Opp hand */
-#opp-area{display:flex;align-items:center;padding:5px 8px;gap:3px;height:48px;flex-shrink:0;background:rgba(0,0,0,.2);}
-.opp-back{width:24px;height:42px;background:linear-gradient(145deg,#2a5c1a,#1a3a0a);border:1.5px solid #4a8a2a;border-radius:5px;display:inline-block;margin:2px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1);}
+#opp-area{display:flex;align-items:center;padding:2px 8px;gap:3px;height:34px;flex-shrink:0;background:rgba(0,0,0,.2);}
+.opp-back{width:18px;height:28px;background:linear-gradient(145deg,#2a5c1a,#1a3a0a);border:1.5px solid #4a8a2a;border-radius:4px;display:inline-block;flex-shrink:0;}
 
 /* Board */
 #board-area{flex:1;overflow:auto;position:relative;background:radial-gradient(ellipse at center,#2d6a4f 0%,#1b4332 100%);}
@@ -64,7 +64,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;backgrou
 .drop-zone.hot{background:rgba(46,204,113,.2);border-color:#2ecc71;color:#2ecc71;}
 
 /* Pozo */
-#pozo-bar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(0,0,0,.3);flex-shrink:0;height:44px;border-top:1px solid rgba(255,255,255,.06);}
+#pozo-bar{display:flex;align-items:center;gap:6px;padding:3px 8px;background:rgba(0,0,0,.3);flex-shrink:0;height:36px;border-top:1px solid rgba(255,255,255,.06);}
 #pozo-label{font-size:11px;color:#7ec8a0;flex-shrink:0;white-space:nowrap;}
 #pozo-pile{display:flex;flex:1;overflow:hidden;align-items:center;}
 #btn-draw{padding:5px 12px;border-radius:6px;border:1px solid rgba(232,201,109,.4);background:rgba(232,201,109,.1);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
@@ -89,7 +89,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;backgrou
 #drag-ghost{position:fixed;pointer-events:none;z-index:9999;display:none;flex-direction:column;align-items:stretch;justify-content:space-between;background:linear-gradient(145deg,#faf6ee,#f0e8d4);border:2px solid var(--gold);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.6);opacity:.92;}
 
 /* Actions */
-#actions{display:flex;gap:8px;padding:5px 10px;background:rgba(0,0,0,.4);flex-shrink:0;align-items:center;border-top:1px solid rgba(255,255,255,.06);}
+#actions{display:flex;gap:6px;padding:4px 8px;background:rgba(0,0,0,.4);flex-shrink:0;align-items:center;border-top:1px solid rgba(255,255,255,.06);}
 
 
 #btn-stats{padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#aaa;font-size:12px;cursor:pointer;}
@@ -209,7 +209,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;backgrou
   <div id="board-area"><div id="board-inner"><div id="board-pieces"></div><div id="drop-left" class="drop-zone" style="display:none;"></div><div id="drop-right" class="drop-zone" style="display:none;"></div></div></div>
   <div id="pozo-bar"><span id="pozo-label">Pozo: <b id="g-yard">0</b></span><div id="pozo-pile"></div><button id="btn-draw" onclick="drawFromPozo()" disabled>🎴 Robar</button></div>
   <div id="hand-wrap"><div id="hand-area"></div></div>
-  <div id="actions"><span id="game-msg"></span><button id="btn-solo-switch" onclick="soloSwitchHand()" style="display:none;padding:7px 12px;border-radius:7px;border:1px solid rgba(46,204,113,.4);background:rgba(46,204,113,.15);color:#2ecc71;font-size:12px;font-weight:600;cursor:pointer;">🔄 Cambiar mano</button><button id="btn-chat" onclick="openChat()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#eee;font-size:16px;cursor:pointer;">💬</button><button id="btn-stats" onclick="showStats(true)">📊</button><button id="btn-leave" onclick="leaveGame()">Salir</button></div>
+  <div id="actions"><span id="game-msg"></span><button id="btn-pass-manual" onclick="manualPass()" style="display:none;padding:6px 12px;border-radius:7px;border:1px solid rgba(255,200,100,.3);background:rgba(255,200,100,.1);color:#e8c96d;font-size:12px;font-weight:600;cursor:pointer;">Pasar</button><button id="btn-solo-switch" onclick="soloSwitchHand()" style="display:none;padding:7px 12px;border-radius:7px;border:1px solid rgba(46,204,113,.4);background:rgba(46,204,113,.15);color:#2ecc71;font-size:12px;font-weight:600;cursor:pointer;">🔄 Cambiar mano</button><button id="btn-chat" onclick="openChat()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#eee;font-size:16px;cursor:pointer;">💬</button><button id="btn-stats" onclick="showStats(true)">📊</button><button id="btn-leave" onclick="leaveGame()">Salir</button></div>
   <!-- Chat bubble -->
   <div id="chat-bubble" style="display:none;position:absolute;bottom:130px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#eee;padding:8px 14px;border-radius:16px;font-size:13px;max-width:80%;text-align:center;z-index:50;pointer-events:none;border:1px solid rgba(255,255,255,.15);"></div>
 </div>
@@ -819,6 +819,24 @@ function renderGame(g){
     toast(g.autoPassMsg, 4000);
   }
 
+  // Auto-pass trigger: if it's my turn, I can't play, and boneyard is empty → auto-pass after short delay
+  var passBtn=document.getElementById('btn-pass-manual');
+  if(myT&&!hasOk&&g.boneyard.length<=2&&g.status==='playing'){
+    if(!window._autoPassScheduled){
+      window._autoPassScheduled=true;
+      setTimeout(function(){
+        window._autoPassScheduled=false;
+        if(curG&&curG.turn===S.pidx&&!curG.hands[S.pidx].some(function(x){return canP(x,curG);})){
+          drawFromPozo(); // this will trigger autoPass since boneyard<=2
+        }
+      }, 1200);
+    }
+    if(passBtn) passBtn.style.display='inline-block';
+  } else {
+    window._autoPassScheduled=false;
+    if(passBtn) passBtn.style.display='none';
+  }
+
   var msg;
   if(myT){
     if(g.firstMove&&g.requiredDouble!==null){
@@ -828,7 +846,7 @@ function renderGame(g){
     } else if(g.boneyard.length>2){
       msg='Sin jugadas — robá del pozo';
     } else {
-      msg='⏳ Sin jugadas — pase automático...';
+      msg='⏳ Pasando turno...';
     }
   } else {
     if(g.firstMove&&g.requiredDouble!==null){
@@ -1102,6 +1120,12 @@ async function drawFromPozo(){
   }
   g.ver=Date.now();lastVer=String(g.ver);
   await dbSet('domino_rooms',S.room,g);curG=g;renderGame(g);
+}
+
+async function manualPass(){
+  var g=await dbGet('domino_rooms',S.room);
+  if(!g||g.turn!==S.pidx)return;
+  await autoPass(g,S.pidx);
 }
 
 async function autoPass(g, me){
